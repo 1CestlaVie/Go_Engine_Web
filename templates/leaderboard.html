@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>围棋对战平台 - 排行榜</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 {
+            color: #333;
+            margin: 0;
+        }
+        .user-info {
+            color: #555;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+        .card h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .leaderboard-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        .leaderboard-table tr:hover {
+            background: #f8f9fa;
+        }
+        .rank {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .score {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .high-score {
+            color: #27ae60;
+        }
+        .med-score {
+            color: #f39c12;
+        }
+        .low-score {
+            color: #e74c3c;
+        }
+        .nav-links {
+            margin-top: 1rem;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin-right: 1rem;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .battle-records {
+            margin-top: 2rem;
+        }
+        .record-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        .win {
+            color: #27ae60;
+        }
+        .loss {
+            color: #e74c3c;
+        }
+        .draw {
+            color: #f39c12;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+            margin-right: 0.5rem;
+        }
+        .tab.active {
+            background: #fff;
+            border-bottom: 1px solid #fff;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>围棋对战平台</h1>
+            <div class="user-info">
+                <span>欢迎, {{ session['name'] }}!</span>
+                <a href="/dashboard" style="margin-left: 1rem; color: #667eea;">返回仪表板</a>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('leaderboard')">排行榜</div>
+            <div class="tab" onclick="switchTab('records')">对战记录</div>
+        </div>
+
+        <div id="leaderboard-tab" class="tab-content active">
+            <div class="card">
+                <h2>模型排行榜</h2>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>用户</th>
+                            <th>模型名称</th>
+                            <th>积分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rank, (model_path, score) in enumerate(leaderboard_data, 1) %}
+                        <tr>
+                            <td class="rank">{{ rank }}</td>
+                            <td>
+                                {% if model_path in user_model_mapping %}
+                                    {{ user_model_mapping[model_path]['name'] }} ({{ user_model_mapping[model_path]['username'] }})
+                                {% else %}
+                                    未知用户
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if model_path in user_model_mapping %}
+                                    {{ user_model_mapping[model_path]['model_name'] }}
+                                {% else %}
+                                    {{ model_path }}
+                                {% endif %}
+                            </td>
+                            <td class="score {% if score >= 10 %}high-score{% elif score >= 5 %}med-score{% else %}low-score{% endif %}">
+                                {{ score }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="records-tab" class="tab-content">
+            <div class="card">
+                <h2>对战记录</h2>
+                <div id="battleRecordsContainer">
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 切换标签页
+        function switchTab(tabName) {
+            // 更新标签页按钮状态
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 显示对应的标签页内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            // 如果是记录标签页，加载数据
+            if (tabName === 'records') {
+                loadBattleRecords();
+            }
+        }
+
+        // 加载对战记录
+        function loadBattleRecords() {
+            fetch('/api/battle_records')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayBattleRecords(data.records);
+                } else {
+                    document.getElementById('battleRecordsContainer').innerHTML = '<p>加载失败: ' + data.message + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('battleRecordsContainer').innerHTML = '<p>加载失败，请稍后重试</p>';
+            });
+        }
+
+        // 显示对战记录
+        function displayBattleRecords(records) {
+            const container = document.getElementById('battleRecordsContainer');
+
+            if (records.length === 0) {
+                container.innerHTML = '<p>暂无对战记录</p>';
+                return;
+            }
+
+            let html = '<div class="battle-records">';
+            records.forEach(record => {
+                const model1Name = record.model1 ?
+                    `${record.model1.name} (${record.model1.username}) - ${record.model1.model_name}` :
+                    '未知模型';
+                const model2Name = record.model2 ?
+                    `${record.model2.name} (${record.model2.username}) - ${record.model2.model_name}` :
+                    '未知模型';
+
+                html += `
+                    <div class="record-item">
+                        <strong>${model1Name}</strong>
+                        <span class="win">${record.wins}胜</span> -
+                        <span class="loss">${record.losses}负</span>
+                        <strong>VS</strong>
+                        <strong>${model2Name}</strong>
+                        <span>(总计: ${record.total}场)</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

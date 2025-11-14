@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>围棋对战</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 {
+            color: #333;
+            margin: 0;
+        }
+        .battle-info {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+        }
+        @media (max-width: 768px) {
+            .battle-info {
+                grid-template-columns: 1fr;
+            }
+        }
+        .board-container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+        }
+        .info-panel {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .info-panel h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(19, 30px);
+            grid-template-rows: repeat(19, 30px);
+            gap: 0;
+            background: #dcb35c;
+            border: 2px solid #000;
+            position: relative;
+            padding: 15px; /* 缩小一格的空间 */
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            position: relative;
+        }
+        .cell::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #000;
+        }
+        .cell::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #000;
+        }
+        .cell.star::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background: #000;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+        .stone {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            z-index: 2;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 50%;
+        }
+        .black {
+            background: #000;
+            border: 1px solid #000;
+        }
+        .white {
+            background: #fff;
+            border: 1px solid #000;
+        }
+        .last-move::after {
+            content: "";
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: red;
+            border-radius: 50%;
+            z-index: 3;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 50%;
+        }
+        .controls {
+            margin-top: 1rem;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .start-btn {
+            background: #27ae60;
+        }
+        .start-btn:hover {
+            background: #219653;
+        }
+        .status {
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .info-item {
+            margin-bottom: 0.5rem;
+        }
+        .message {
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            text-align: center;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>围棋对战</h1>
+            <div class="user-info">
+                <a href="/dashboard" style="color: #667eea;">返回仪表板</a>
+            </div>
+        </div>
+
+        <div class="battle-info">
+            <div class="board-container">
+                <div id="board" class="board"></div>
+            </div>
+
+            <div class="info-panel">
+                <h2>对战信息</h2>
+                <div id="statusMessage" class="message"></div>
+                <div class="info-item">
+                    <strong>对局:</strong> <span id="gameNumber">-</span>/<span id="totalGames">-</span>
+                </div>
+                <div class="info-item">
+                    <strong>大比分:</strong> <span id="player1Score">0</span>-<span id="player2Score">0</span>
+                </div>
+                <div class="info-item">
+                    <strong>第几场:</strong> <span id="matchNumber">-</span>/<span id="totalMatches">-</span>
+                </div>
+                <div class="info-item">
+                    <strong>小比分:</strong> <span id="matchPlayer1Score">0</span>-<span id="matchPlayer2Score">0</span>
+                </div>
+                <div class="info-item">
+                    <strong>手数:</strong> <span id="moveCount">-</span>/<span id="maxMoves">-</span>
+                </div>
+                <div class="info-item">
+                    <strong>当前玩家:</strong> <span id="currentPlayer">-</span>
+                </div>
+                <div class="info-item">
+                    <strong>提子数:</strong> 黑<span id="blackCaptured">0</span> 白<span id="whiteCaptured">0</span>
+                </div>
+                <div class="info-item">
+                    <strong>当前比分:</strong> <span id="blackScore">-</span>-<span id="whiteScore">-</span>
+                </div>
+                <div class="controls">
+                    <button id="leaveBtn">离开房间</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // 获取房间ID
+        const pathParts = window.location.pathname.split('/');
+        const roomId = pathParts[pathParts.length - 1];
+        
+        // 连接到SocketIO服务器
+        const socket = io();
+        
+        // 页面元素
+        const boardElement = document.getElementById('board');
+        const gameNumberElement = document.getElementById('gameNumber');
+        const totalGamesElement = document.getElementById('totalGames');
+        const player1ScoreElement = document.getElementById('player1Score');
+        const player2ScoreElement = document.getElementById('player2Score');
+        const matchNumberElement = document.getElementById('matchNumber');
+        const totalMatchesElement = document.getElementById('totalMatches');
+        const matchPlayer1ScoreElement = document.getElementById('matchPlayer1Score');
+        const matchPlayer2ScoreElement = document.getElementById('matchPlayer2Score');
+        const moveCountElement = document.getElementById('moveCount');
+        const maxMovesElement = document.getElementById('maxMoves');
+        const blackScoreElement = document.getElementById('blackScore');
+        const whiteScoreElement = document.getElementById('whiteScore');
+        const currentPlayerElement = document.getElementById('currentPlayer');
+        const blackCapturedElement = document.getElementById('blackCaptured');
+        const whiteCapturedElement = document.getElementById('whiteCaptured');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // 棋盘状态
+        let boardState = Array(19).fill().map(() => Array(19).fill(0));
+        let lastMove = null;
+
+        // 加入房间
+        socket.emit('join_battle', { room_id: roomId });
+
+        // 离开房间
+        leaveBtn.addEventListener('click', () => {
+            socket.emit('leave_battle', { room_id: roomId });
+            window.location.href = '/dashboard';
+        });
+        
+        // 接收错误消息
+        socket.on('error', (data) => {
+            showMessage(data.message, 'error');
+        });
+        
+        // 接收对战状态
+        socket.on('battle_status', (data) => {
+            updateBoard(data.board);
+            updateStatus(data);
+        });
+        
+        // 游戏开始
+        socket.on('game_start', (data) => {
+            gameNumberElement.textContent = data.game_number;
+            totalGamesElement.textContent = data.total_games;
+            matchNumberElement.textContent = data.match_number;
+            totalMatchesElement.textContent = data.total_matches;
+            player1ScoreElement.textContent = data.scores[0];
+            player2ScoreElement.textContent = data.scores[1];
+            matchPlayer1ScoreElement.textContent = data.match_scores[0];
+            matchPlayer2ScoreElement.textContent = data.match_scores[1];
+            moveCountElement.textContent = data.move_count;
+            maxMovesElement.textContent = data.max_moves;
+            blackScoreElement.textContent = '-';
+            whiteScoreElement.textContent = '-';
+            showMessage(`对局${data.game_number}/${data.total_games}，第${data.match_number}/${data.total_matches}场开始`, 'success');
+        });
+        
+        // 落子
+        socket.on('move_made', (data) => {
+            // 记录最后落子位置
+            lastMove = { row: data.row, col: data.col };
+
+            // 更新棋盘
+            updateBoard(data.board);
+
+            // 更新提子数
+            blackCapturedElement.textContent = data.captured_stones[1];
+            whiteCapturedElement.textContent = data.captured_stones[2];
+
+            // 更新对局信息
+            gameNumberElement.textContent = data.game_number;
+            totalGamesElement.textContent = data.total_games;
+            matchNumberElement.textContent = data.match_number;
+            totalMatchesElement.textContent = data.total_matches;
+            player1ScoreElement.textContent = data.scores[0];
+            player2ScoreElement.textContent = data.scores[1];
+            matchPlayer1ScoreElement.textContent = data.match_scores[0];
+            matchPlayer2ScoreElement.textContent = data.match_scores[1];
+            moveCountElement.textContent = data.move_count;
+            maxMovesElement.textContent = data.max_moves;
+
+            // 更新当前玩家
+            currentPlayerElement.textContent = data.player === 1 ? '黑方' : '白方';
+        });
+        
+        // 场结束
+        socket.on('game_end', (data) => {
+            // 更新比分
+            player1ScoreElement.textContent = data.scores[0];
+            player2ScoreElement.textContent = data.scores[1];
+            matchPlayer1ScoreElement.textContent = data.match_scores[0];
+            matchPlayer2ScoreElement.textContent = data.match_scores[1];
+            blackScoreElement.textContent = data.black_score.toFixed(1);
+            whiteScoreElement.textContent = data.white_score.toFixed(1);
+            moveCountElement.textContent = data.move_count;
+            maxMovesElement.textContent = data.max_moves;
+
+            // 显示场结果
+            const winnerText = data.winner === 1 ? '黑方' : '白方';
+            showMessage(`第${data.match_number}/${data.total_matches}场结束，${winnerText}获胜！当前比分 ${data.black_score.toFixed(1)}-${data.white_score.toFixed(1)}`, 'success');
+        });
+
+        // 局结束
+        socket.on('match_end', (data) => {
+            // 更新比分
+            player1ScoreElement.textContent = data.scores[0];
+            player2ScoreElement.textContent = data.scores[1];
+            matchPlayer1ScoreElement.textContent = data.match_scores[0];
+            matchPlayer2ScoreElement.textContent = data.match_scores[1];
+            blackScoreElement.textContent = data.black_score.toFixed(1);
+            whiteScoreElement.textContent = data.white_score.toFixed(1);
+            moveCountElement.textContent = data.move_count;
+            maxMovesElement.textContent = data.max_moves;
+
+            // 显示局结果
+            const winnerText = data.winner === 1 ? '黑方' : '白方';
+            const matchWinnerText = data.match_scores[0] > data.match_scores[1] ? '黑方' : '白方';
+            showMessage(`第${data.game_number}/${data.total_games}局结束，${matchWinnerText}赢得本局！小比分 ${data.match_scores[0]}-${data.match_scores[1]}`, 'success');
+        });
+
+        // 对战结束
+        socket.on('battle_end', (data) => {
+            const winnerText = data.final_winner === 1 ? '黑方' : '白方';
+            showMessage(`对战结束，${winnerText}获得最终胜利！大比分 ${data.scores[0]}-${data.scores[1]}`, 'success');
+        });
+
+        // 对战已加入队列
+        socket.on('battle_queued', (data) => {
+            showMessage(data.message || '对战已加入队列，将在资源可用时开始', 'success');
+        });
+        
+        // 更新棋盘显示
+        function updateBoard(board) {
+            boardState = board;
+            renderBoard();
+        }
+        
+        // 渲染棋盘
+        function renderBoard() {
+            // 清空棋盘
+            boardElement.innerHTML = '';
+
+            // 创建星位位置
+            const starPositions = [
+                [3, 3], [3, 9], [3, 15],
+                [9, 3], [9, 9], [9, 15],
+                [15, 3], [15, 9], [15, 15]
+            ];
+
+            // 创建棋盘格子
+            for (let row = 0; row < 19; row++) {
+                for (let col = 0; col < 19; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+
+                    // 检查是否是星位
+                    const isStar = starPositions.some(pos => pos[0] === row && pos[1] === col);
+                    if (isStar) {
+                        cell.classList.add('star');
+                    }
+
+                    // 检查是否有棋子
+                    const stoneValue = boardState[row][col];
+                    if (stoneValue !== 0) {
+                        const stone = document.createElement('div');
+                        stone.className = `stone ${stoneValue === 1 ? 'black' : 'white'}`;
+                        cell.appendChild(stone);
+
+                        // 标记最后落子
+                        if (lastMove && lastMove.row === row && lastMove.col === col) {
+                            cell.classList.add('last-move');
+                        }
+                    }
+
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+        
+        // 更新状态显示
+        function updateStatus(data) {
+            gameNumberElement.textContent = data.game_number || '-';
+            totalGamesElement.textContent = data.total_games || '-';
+            player1ScoreElement.textContent = data.scores ? data.scores[0] : '0';
+            player2ScoreElement.textContent = data.scores ? data.scores[1] : '0';
+            currentPlayerElement.textContent = data.current_player === 1 ? '黑方' : (data.current_player === 2 ? '白方' : '-');
+            blackCapturedElement.textContent = data.captured_stones ? data.captured_stones[1] : '0';
+            whiteCapturedElement.textContent = data.captured_stones ? data.captured_stones[2] : '0';
+        }
+        
+        // 显示消息
+        function showMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `message ${type}`;
+            statusMessage.style.display = 'block';
+            
+            // 3秒后隐藏消息
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 初始化棋盘
+        renderBoard();
+    </script>
+</body>
+</html>

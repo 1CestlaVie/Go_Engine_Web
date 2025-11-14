@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>围棋对战平台 - 仪表板</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 {
+            color: #333;
+            margin: 0;
+        }
+        .user-info {
+            color: #555;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .card h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .model-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .model-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+        .model-item:last-child {
+            border-bottom: none;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        .opponent-models {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .opponent-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+        .opponent-item:last-child {
+            border-bottom: none;
+        }
+        .battle-btn {
+            background: #27ae60;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            margin-right: 1rem;
+        }
+        .battle-btn:hover {
+            background: #219653;
+        }
+        .battle-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .message {
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            text-align: center;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .battle-room-link {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #f39c12;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: transform 0.2s;
+        }
+        .battle-room-link:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+        .battle-room-link:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>围棋对战平台</h1>
+            <div class="user-info">
+                <span>欢迎, {{ name }}!</span>
+                <a href="/leaderboard" style="margin-left: 1rem; color: #667eea;">排行榜</a>
+                <a href="/logout" style="margin-left: 1rem; color: #667eea;">登出</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="card">
+                <h2>上传模型</h2>
+                <div id="uploadMessage" class="message"></div>
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label for="modelFile">选择ONNX模型文件</label>
+                        <input type="file" id="modelFile" name="model_file" accept=".onnx" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataFile">选择模型数据文件（可选，保持原始文件名）</label>
+                        <input type="file" id="dataFile" name="data_file" accept=".data">
+                    </div>
+                    <button type="submit">上传模型</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>我的模型</h2>
+                <div id="modelsMessage" class="message"></div>
+                <ul id="modelsList" class="model-list">
+                    {% for model in models %}
+                    <li class="model-item">
+                        <span>{{ model.split('/')[-1] }}</span>
+                        <button class="delete-btn" data-path="{{ model }}">删除</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>开始对战</h2>
+                <div id="battleMessage" class="message"></div>
+                <div class="battle-controls">
+                    <div class="form-group">
+                        <label for="myModelSelect">选择我的模型</label>
+                        <select id="myModelSelect" class="form-control">
+                            <option value="">请选择我的模型</option>
+                            {% for model in models %}
+                            <option value="{{ model }}">{{ model.split('/')[-1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="opponentSelect">选择对手小组</label>
+                        <select id="opponentSelect" class="form-control">
+                            <option value="">请选择对手小组</option>
+                            {% for user, info in users.items() %}
+                                {% if user != session['username'] and info['models'] %}
+                                    <option value="{{ user }}">{{ info['name'] }} ({{ user }})</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="modelSelect">选择对手模型</label>
+                        <select id="modelSelect" class="form-control" disabled>
+                            <option value="">请先选择对手小组</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button id="battleActionBtn" class="battle-btn" disabled>请选择我的模型、对手和模型</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>对战说明</h2>
+                <p>1. 上传您的ONNX格式围棋模型</p>
+                <p>2. 选择其他用户的模型发起对战</p>
+                <p>3. 系统将自动进行3局对战（每局5场，每场400手）</p>
+                <p>4. 实时观看对战过程和比分</p>
+                <p>5. 每个小组最多可上传3个模型</p>
+                <p>6. 对战将在服务器队列中执行，避免资源竞争</p>
+                <p>7. !!!最重要!!!如果你的模型分为model.onnx和model.onnx.data,请在导出时就写好data文件独一无二的命名.因为调用model.onnx时会寻找其内部写好的指向data文件的固定名字.所以如果你的data命名与别人重复会导致你们共享同一个模型权重</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 上传模型
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('modelFile');
+            const file = fileInput.files[0];
+            const messageDiv = document.getElementById('uploadMessage');
+            
+            if (!file) {
+                showMessage(messageDiv, '请选择一个文件', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('model_file', file);
+            
+            // 发送上传请求
+            fetch('/upload_model', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(messageDiv, data.message, 'success');
+                    // 重新加载页面以显示新上传的模型
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showMessage(messageDiv, data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage(messageDiv, '已经有3个模型了,leaf的电脑要放不下了', 'error');
+            });
+        });
+        
+        // 删除模型
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const modelPath = this.getAttribute('data-path');
+                const messageDiv = document.getElementById('modelsMessage');
+                
+                // 确认删除
+                if (!confirm('确定要删除这个模型吗？')) {
+                    return;
+                }
+                
+                // 发送删除请求
+                fetch('/delete_model', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ model_path: modelPath })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage(messageDiv, data.message, 'success');
+                        // 重新加载页面以更新模型列表
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showMessage(messageDiv, data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage(messageDiv, '删除失败，请稍后重试', 'error');
+                });
+            });
+        });
+        
+        // 对手小组选择变化
+        document.getElementById('opponentSelect').addEventListener('change', function() {
+            const opponentUsername = this.value;
+            const modelSelect = document.getElementById('modelSelect');
+            const battleActionBtn = document.getElementById('battleActionBtn');
+
+            // 清空模型选择框
+            modelSelect.innerHTML = '<option value="">请选择对手模型</option>';
+
+            if (opponentUsername) {
+                // 启用模型选择框
+                modelSelect.disabled = false;
+
+                // 获取对手的模型列表
+                fetch(`/get_user_models/${opponentUsername}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 填充模型选择框
+                        data.models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.path;
+                            option.textContent = model.name;
+                            modelSelect.appendChild(option);
+                        });
+
+                        // 更新按钮状态
+                        updateBattleButtonState();
+                    } else {
+                        showMessage(document.getElementById('battleMessage'), data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage(document.getElementById('battleMessage'), '获取对手模型失败', 'error');
+                });
+            } else {
+                // 禁用模型选择框
+                modelSelect.disabled = true;
+                // 更新按钮状态
+                updateBattleButtonState();
+            }
+        });
+
+        // 我的模型选择变化
+        document.getElementById('myModelSelect').addEventListener('change', function() {
+            updateBattleButtonState();
+        });
+
+        // 模型选择变化
+        document.getElementById('modelSelect').addEventListener('change', function() {
+            updateBattleButtonState();
+        });
+
+        // 更新对战按钮状态
+        function updateBattleButtonState() {
+            const myModelSelect = document.getElementById('myModelSelect');
+            const opponentSelect = document.getElementById('opponentSelect');
+            const modelSelect = document.getElementById('modelSelect');
+            const battleActionBtn = document.getElementById('battleActionBtn');
+
+            const hasMyModel = !!myModelSelect.value;
+            const hasOpponent = !!opponentSelect.value;
+            const hasModel = !!modelSelect.value;
+
+            console.log('=== Updating battle button state ===');
+            console.log('My model selected:', myModelSelect.value);
+            console.log('Opponent selected:', opponentSelect.value);
+            console.log('Model selected:', modelSelect.value);
+            console.log('Has my model:', hasMyModel);
+            console.log('Has opponent:', hasOpponent);
+            console.log('Has model:', hasModel);
+
+            // 检查是否有活跃对局
+            fetch('/get_active_battle')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Active battle check result:', data);
+                if (data.success && data.room_id) {
+                    // 有活跃对局
+                    console.log('Setting button to: 进入对局房间');
+                    battleActionBtn.textContent = '进入对局房间';
+                    battleActionBtn.disabled = false;
+                    battleActionBtn.onclick = function() {
+                        console.log('Opening battle room:', `/battle/${data.room_id}`);
+                        window.open(`/battle/${data.room_id}`, '_blank');
+                    };
+                } else {
+                    // 无活跃对局
+                    console.log('No active battle');
+                    if (hasMyModel && hasOpponent && hasModel) {
+                        console.log('Setting button to: 发起对战');
+                        battleActionBtn.textContent = '发起对战';
+                        battleActionBtn.disabled = false;
+                        battleActionBtn.onclick = startBattle;
+                    } else {
+                        console.log('Setting button to: 请选择我的模型、对手和模型');
+                        battleActionBtn.textContent = '请选择我的模型、对手和模型';
+                        battleActionBtn.disabled = true;
+                        battleActionBtn.onclick = null;
+                    }
+                }
+                console.log('Button text:', battleActionBtn.textContent);
+                console.log('Button disabled:', battleActionBtn.disabled);
+            })
+            .catch(error => {
+                console.error('Error checking active battle:', error);
+                // 出错时使用默认逻辑
+                if (hasMyModel && hasOpponent && hasModel) {
+                    console.log('Setting button to: 发起对战 (fallback)');
+                    battleActionBtn.textContent = '发起对战';
+                    battleActionBtn.disabled = false;
+                    battleActionBtn.onclick = startBattle;
+                } else {
+                    console.log('Setting button to: 请选择我的模型、对手和模型 (fallback)');
+                    battleActionBtn.textContent = '请选择我的模型、对手和模型';
+                    battleActionBtn.disabled = true;
+                    battleActionBtn.onclick = null;
+                }
+                console.log('Button text:', battleActionBtn.textContent);
+                console.log('Button disabled:', battleActionBtn.disabled);
+            });
+        }
+
+        // 发起对战
+        function startBattle() {
+            const myModelPath = document.getElementById('myModelSelect').value;
+            const opponentUsername = document.getElementById('opponentSelect').value;
+            const opponentModelPath = document.getElementById('modelSelect').value;
+            const messageDiv = document.getElementById('battleMessage');
+
+            if (!myModelPath) {
+                showMessage(messageDiv, '请选择我的模型', 'error');
+                return;
+            }
+
+            if (!opponentUsername || !opponentModelPath) {
+                showMessage(messageDiv, '请选择对手小组和模型', 'error');
+                return;
+            }
+
+            // 发送开始对战请求
+            fetch('/start_battle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    my_model_path: myModelPath,
+                    opponent_username: opponentUsername,
+                    opponent_model_path: opponentModelPath
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 显示成功消息
+                    showMessage(messageDiv, data.message || '对战房间创建成功！', 'success');
+
+                    // 更新按钮状态
+                    setTimeout(updateBattleButtonState, 1000);
+                } else {
+                    showMessage(messageDiv, data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage(messageDiv, '发起对战失败，请稍后重试', 'error');
+            });
+        }
+        
+        // 页面加载时初始化按钮状态
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBattleButtonState();
+        });
+
+        // 显示消息
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.className = `message ${type}`;
+            element.style.display = 'block';
+
+            // 3秒后隐藏消息
+            setTimeout(() => {
+                element.style.display = 'none';
+                // 重新检查按钮状态
+                updateBattleButtonState();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
