@@ -150,20 +150,21 @@ def remove_model_from_leaderboard(model_path):
     try:
         # 从对战记录中移除相关记录
         records_to_remove = []
-        for pair_key in leaderboard.battle_records.keys():
-            models = pair_key.split(' vs ')
-            if model_path in models:
-                records_to_remove.append(pair_key)
+        for pair_key in list(leaderboard.battle_records.keys()):
+            # 移除与模型相关的对战记录
+            if ' vs ' in pair_key:  # 只处理对战记录，不处理标记字段
+                models = pair_key.split(' vs ')
+                if model_path in models:
+                    records_to_remove.append(pair_key)
+                    # 同时移除对应的标记字段
+                    computed_key = f"{pair_key}_computed"
+                    if computed_key in leaderboard.battle_records:
+                        records_to_remove.append(computed_key)
 
         # 删除相关记录
         for pair_key in records_to_remove:
             print(f"Removing battle record: {pair_key}")
             del leaderboard.battle_records[pair_key]
-
-        # 从模型积分中移除相关记录
-        if model_path in leaderboard.model_scores:
-            print(f"Removing model score for: {model_path}")
-            del leaderboard.model_scores[model_path]
 
         # 重新计算所有模型的积分
         print("Recalculating all model scores...")
@@ -184,27 +185,37 @@ def recalculate_all_scores():
 
         # 根据现有的对战记录重新计算积分
         for pair_key, record in leaderboard.battle_records.items():
+            # 跳过标记字段（如 *_computed）
+            if pair_key.endswith('_computed'):
+                continue
+
             models = pair_key.split(' vs ')
             model1_path = models[0]
             model2_path = models[1]
             wins = record['wins']
             losses = record['losses']
 
-            # 计算积分（只有在总对局数小于4时才更新积分）
-            total_battles = wins + losses
-            if total_battles <= 4:
-                if wins > losses:
-                    # 模型1胜出
-                    leaderboard.model_scores[model1_path] += 3
-                    leaderboard.model_scores[model2_path] += 1
-                elif losses > wins:
-                    # 模型2胜出
-                    leaderboard.model_scores[model1_path] += 1
-                    leaderboard.model_scores[model2_path] += 3
-                else:
-                    # 平局
-                    leaderboard.model_scores[model1_path] += 2
-                    leaderboard.model_scores[model2_path] += 2
+            # 确定模型1和模型2在记录中的位置
+            if model1_path <= model2_path:
+                model1_wins = wins
+                model2_wins = losses
+            else:
+                model1_wins = losses
+                model2_wins = wins
+
+            # 计算积分（基于累计的战绩）
+            if model1_wins > model2_wins:
+                # 模型1胜出
+                leaderboard.model_scores[model1_path] += 3
+                leaderboard.model_scores[model2_path] += 1
+            elif model2_wins > model1_wins:
+                # 模型2胜出
+                leaderboard.model_scores[model1_path] += 1
+                leaderboard.model_scores[model2_path] += 3
+            else:
+                # 平局
+                leaderboard.model_scores[model1_path] += 2
+                leaderboard.model_scores[model2_path] += 2
 
         print(f"Recalculated scores for {len(leaderboard.model_scores)} models")
     except Exception as e:
@@ -821,7 +832,7 @@ def run_battle(room_id):
                     }, room=room_id)
 
                     # 短暂延迟以控制速度（减少延迟以提高速度）
-                    time.sleep(0.1)
+                    time.sleep(0)
                 else:
                     # 无效落子，跳过
                     socketio.emit('error', {'message': f'无效落子: {move}'}, room=room_id)
@@ -888,7 +899,7 @@ def run_battle(room_id):
                     }, room=room_id)
 
                 # 等待一段时间再开始下一场比赛（减少延迟以提高速度）
-                time.sleep(1)
+                time.sleep(3)
 
         # 检查是否有人赢得整个对战
         if room['scores'][0] >= 2 or room['scores'][1] >= 2:

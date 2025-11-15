@@ -1,4 +1,12 @@
 {
-  "battle_records": {},
-  "model_scores": {}
+  "battle_records": {
+    "/uploads/group1_model1.onnx vs /uploads/group2_model1.onnx": {
+      "wins": 2,
+      "losses": 2
+    }
+  },
+  "model_scores": {
+    "/uploads/group1_model1.onnx": 2,
+    "/uploads/group2_model1.onnx": 2
+  }
 }

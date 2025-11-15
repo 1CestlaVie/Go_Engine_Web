@@ -51,11 +51,16 @@ class Leaderboard:
         """
         # 获取模型对的唯一键
         pair_key = self.get_model_pair_key(model1_path, model2_path)
-        
+
+        # 保存之前的战绩
+        old_record = None
+        if pair_key in self.battle_records:
+            old_record = dict(self.battle_records[pair_key])  # 复制一份
+
         # 初始化记录
         if pair_key not in self.battle_records:
             self.battle_records[pair_key] = {'wins': 0, 'losses': 0}
-        
+
         # 更新战绩
         if model1_wins:
             # 确定哪个是实际的赢家和输家
@@ -69,16 +74,49 @@ class Leaderboard:
                 self.battle_records[pair_key]['losses'] += 1
             else:
                 self.battle_records[pair_key]['wins'] += 1
-        
-        # 计算积分（只有在总对局数小于4时才更新积分）
-        total_battles = self.battle_records[pair_key]['wins'] + self.battle_records[pair_key]['losses']
-        if total_battles <= 4:
-            self._calculate_and_update_scores(pair_key, model1_path, model2_path)
-        else:
-            print(f"Battle record {pair_key} has reached 4 battles, scores frozen")
-        
+
+        # 每次更新战绩后都重新计算积分（基于累计的战绩）
+        # 首先清除之前这对模型的积分
+        if old_record:
+            self._clear_pair_scores(model1_path, model2_path, old_record)
+        # 然后重新计算积分
+        self._calculate_and_update_scores(pair_key, model1_path, model2_path)
+
         # 保存数据
         self.save_data()
+
+    def _clear_pair_scores(self, model1_path, model2_path, old_record):
+        """清除一对模型的积分"""
+        # 减去之前这对模型的积分
+
+        wins = old_record['wins']
+        losses = old_record['losses']
+
+        # 确定模型1和模型2在记录中的位置
+        if model1_path <= model2_path:
+            model1_wins = wins
+            model2_wins = losses
+        else:
+            model1_wins = losses
+            model2_wins = wins
+
+        # 清除之前的积分
+        if model1_wins > model2_wins:
+            # 模型1胜出
+            self.model_scores[model1_path] -= 3
+            self.model_scores[model2_path] -= 1
+        elif model2_wins > model1_wins:
+            # 模型2胜出
+            self.model_scores[model1_path] -= 1
+            self.model_scores[model2_path] -= 3
+        else:
+            # 平局
+            self.model_scores[model1_path] -= 2
+            self.model_scores[model2_path] -= 2
+
+        # 确保积分不会变成负数
+        self.model_scores[model1_path] = max(0, self.model_scores[model1_path])
+        self.model_scores[model2_path] = max(0, self.model_scores[model2_path])
     
     def _calculate_and_update_scores(self, pair_key, model1_path, model2_path):
         """计算并更新模型积分"""

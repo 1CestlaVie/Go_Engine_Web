@@ -1,7 +1,6 @@
-# Go_Engine_Web - 围棋AI对战平台
+# GoBattle - 围棋AI对战平台
 
-Go_Engine_Web是一个基于Web的围棋AI对战平台，支持用户上传ONNX格式的围棋AI模型进行自动化对战，并提供实时观战、积分排行等功能。
-该平台与老板写的经过我改进后的Go_Battle配合使用,后续会上传.
+GoBattle是一个基于Web的围棋AI对战平台，支持用户上传ONNX格式的围棋AI模型进行自动化对战，并提供实时观战、积分排行等功能。
 
 ## 功能特性
 
@@ -37,12 +36,6 @@ Go_Engine_Web是一个基于Web的围棋AI对战平台，支持用户上传ONNX�
 
 ## 快速开始
 
-## 账号密码
-先创建一个账号密码.txt
-内容格式如下
-group  account  pin
-某某某,某某某  xxxxxx  xxxxxx
-
 ### 环境要求
 - Python 3.8+
 - pip包管理器
@@ -63,8 +56,8 @@ python app.py
 
 ### 1. 用户登录
 使用预设的账号密码登录系统：
-- 账号：xxxxxx
-- 密码：xxxxxx
+- 账号：小组英文缩写（如：jyjlym）
+- 密码：小组英文缩写（如：jyjlym）
 
 ### 2. 上传模型
 1. 进入仪表板页面
@@ -166,6 +159,13 @@ python app.py
 ## 贡献指南
 
 欢迎提交Issue和Pull Request来改进项目！
+
+## 鸣谢
+
+特别感谢以下项目和技术的支持：
+
+- **Qwen Coder**：提供了强大的AI编程辅助，帮助快速开发和调试代码
+- **Qwen3-Coder-480b-a35b-instruct**：作为底层大语言模型，提供了智能代码生成和问题解决能力
 
 ## 许可证
 
