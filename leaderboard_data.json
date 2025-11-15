@@ -3,10 +3,16 @@
     "/uploads/group1_model1.onnx vs /uploads/group2_model1.onnx": {
       "wins": 2,
       "losses": 2
+    },
+    "uploads\\lcrwzz_b3.onnx vs uploads\\yslgjl_latest.onnx": {
+      "wins": 0,
+      "losses": 1
     }
   },
   "model_scores": {
     "/uploads/group1_model1.onnx": 2,
-    "/uploads/group2_model1.onnx": 2
+    "/uploads/group2_model1.onnx": 2,
+    "uploads\\lcrwzz_b3.onnx": 1,
+    "uploads\\yslgjl_latest.onnx": 3
   }
 }

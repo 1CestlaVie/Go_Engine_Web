@@ -754,9 +754,9 @@ def run_battle(room_id):
     """运行对战逻辑"""
     if room_id not in battle_rooms:
         return
-    
+
     room = battle_rooms[room_id]
-    
+
     # 加载模型
     try:
         player1 = ONNXGoPlayer(room['player1_model'], room['board_size'])
@@ -765,8 +765,8 @@ def run_battle(room_id):
         socketio.emit('error', {'message': f'模型加载失败: {str(e)}'}, room=room_id)
         room['battle_active'] = False
         return
-    
-    # 进行多局对战
+
+    # 进行多局对战 (3局2胜制)
     for game_num in range(1, room['total_games'] + 1):
         if not room['battle_active']:  # 检查是否应该停止
             break
@@ -774,7 +774,7 @@ def run_battle(room_id):
         room['current_game'] = game_num
         room['match_scores'] = [0, 0]  # 重置当前局的小比分
 
-        # 进行多场对战
+        # 进行多场对战 (5场3胜制)
         for match_num in range(1, room['games_per_match'] + 1):
             if not room['battle_active']:  # 检查是否应该停止
                 break
@@ -848,9 +848,10 @@ def run_battle(room_id):
                 else:
                     room['match_scores'][1] += 1
 
-                # 检查是否有人赢得当前局（先赢3场）
-                if room['match_scores'][0] >= 3 or room['match_scores'][1] >= 3 or match_num == room['games_per_match']:
-                    # 当前局结束，更新大比分
+                # 检查是否有人赢得当前小局（5场3胜制）
+                # 如果某一方先达到3胜，则提前结束本轮比赛
+                if room['match_scores'][0] >= 3 or room['match_scores'][1] >= 3:
+                    # 当前小局结束，更新大比分
                     if room['match_scores'][0] > room['match_scores'][1]:
                         room['scores'][0] += 1
                     elif room['match_scores'][1] > room['match_scores'][0]:
@@ -871,7 +872,50 @@ def run_battle(room_id):
                         'max_moves': max_moves
                     }, room=room_id)
 
-                    # 检查是否有人赢得整个对战（先赢2局）
+                    # 检查是否有人赢得整个对战（3局2胜制）
+                    # 如果某一方先达到2胜，则提前结束整个对战
+                    if room['scores'][0] >= 2 or room['scores'][1] >= 2:
+                        # 对战结束，更新排行榜
+                        final_winner = 1 if room['scores'][0] > room['scores'][1] else 2
+                        player1_model = room['player1_model']
+                        player2_model = room['player2_model']
+                        player1_wins = (final_winner == 1)
+
+                        # 更新排行榜
+                        leaderboard.update_battle_result(player1_model, player2_model, player1_wins)
+                        break  # 对战结束
+
+                    # 否则继续下一轮比赛
+                    # 等待一段时间再开始下一场比赛（减少延迟以提高速度）
+                    time.sleep(1)
+                    break  # 结束当前轮次的比赛
+                elif match_num == room['games_per_match']:
+                    # 达到了最大场数，更新大比分
+                    if room['match_scores'][0] > room['match_scores'][1]:
+                        room['scores'][0] += 1
+                    elif room['match_scores'][1] > room['match_scores'][0]:
+                        room['scores'][1] += 1
+                    else:
+                        # 平局情况，双方各得一分（可选规则）
+                        room['scores'][0] += 1
+                        room['scores'][1] += 1
+
+                    # 发送局结束消息
+                    socketio.emit('match_end', {
+                        'winner': winner,
+                        'black_score': black_score,
+                        'white_score': white_score,
+                        'scores': room['scores'],  # 大比分
+                        'match_scores': room['match_scores'],  # 小比分
+                        'game_number': game_num,
+                        'total_games': room['total_games'],
+                        'match_number': match_num,
+                        'total_matches': room['games_per_match'],
+                        'move_count': move_count,
+                        'max_moves': max_moves
+                    }, room=room_id)
+
+                    # 检查是否有人赢得整个对战（3局2胜制）
                     if room['scores'][0] >= 2 or room['scores'][1] >= 2:
                         # 对战结束，更新排行榜
                         final_winner = 1 if room['scores'][0] > room['scores'][1] else 2
@@ -899,14 +943,12 @@ def run_battle(room_id):
                     }, room=room_id)
 
                 # 等待一段时间再开始下一场比赛（减少延迟以提高速度）
-                time.sleep(3)
+                time.sleep(1)
 
         # 检查是否有人赢得整个对战
         if room['scores'][0] >= 2 or room['scores'][1] >= 2:
             break  # 对战结束
 
-    # 所有对战结束
-    
     # 所有对战结束
     if room['battle_active']:
         final_winner = 1 if room['scores'][0] > room['scores'][1] else 2

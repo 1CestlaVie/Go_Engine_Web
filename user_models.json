@@ -1,13 +1,17 @@
 {
   "jyjlym": [],
-  "yslgjl": [],
+  "yslgjl": [
+    "uploads\\yslgjl_latest.onnx"
+  ],
   "xycdyn": [],
   "yjzcys": [],
   "hjrlzh": [],
   "xgqmc": [],
   "smqllh": [],
   "myhsrx": [],
-  "lcrwzz": [],
+  "lcrwzz": [
+    "uploads\\lcrwzz_b3.onnx"
+  ],
   "hkrtqs": [],
   "qsbxwj": [],
   "fxywcx": [],
